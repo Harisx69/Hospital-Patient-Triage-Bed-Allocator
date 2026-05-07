@@ -4,3 +4,12 @@ Patient 3 assigned to bed 2
 Patient 1 assigned to bed 0
 Patient 2 assigned to bed 1
 Patient 3 assigned to bed 2
+Patient 1 assigned to bed 0
+Patient 2 assigned to bed 1
+Patient 3 assigned to bed 2
+Patient 1 assigned to bed 0
+Patient 2 assigned to bed 1
+Patient 3 assigned to bed 2
+Patient 1 assigned to bed 0
+Patient 2 assigned to bed 1
+Patient 3 assigned to bed 2

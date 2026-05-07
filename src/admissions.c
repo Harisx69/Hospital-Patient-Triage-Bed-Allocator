@@ -38,8 +38,7 @@ int main()
 
     int fd = open(DISCHARGE_FIFO, O_RDONLY);
 
-    while(1)
-    {
+    while(1){
         int patient_id;
 
         int bytes = read(fd, &patient_id, sizeof(int));

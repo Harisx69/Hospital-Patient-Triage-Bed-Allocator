@@ -5,73 +5,53 @@
 BedPartition ward[WARD_SIZE];
 void initialize_ward()
 {
-    int i;
-
-    for(i = 0; i < WARD_SIZE; i++)
-    {
+    int i = 0 ;
+    for(i = 0; i < WARD_SIZE; i++) {
         ward[i].partition_id = i;
         ward[i].start_unit = i;
         ward[i].size = 1;
         ward[i].is_free = 1;
         ward[i].patient_id = -1;
-
-        if(i < 4)
-        {
+        if(i < 4) {
             strcpy(ward[i].bed_type, "ICU");
-        }
-        else if(i < 8)
-        {
+        }else if(i < 8){
             strcpy(ward[i].bed_type, "ISOLATION");
-        }
-        else
-        {
+        }else{
             strcpy(ward[i].bed_type, "GENERAL");
         }
     }
 }
 
-void print_ward_map()
-{
+void print_ward_map(){
     int i;
-
-    printf("\nWard Status:\n");
-
-    for(i = 0; i < WARD_SIZE; i++)
-    {
-        if(ward[i].is_free)
-        {
+     printf("\nWard Status:\n");
+    for(i = 0; i < WARD_SIZE; i++) {
+        if (i==WARD_SIZE/2) printf("\n");
+        if(ward[i].is_free) {
             printf("[FREE]");
-        }
-        else
-        {
+        }else{
             printf("[P%d]", ward[i].patient_id);
         }
     }
-
-    printf("\n");
+     printf("\n");
 }
-int best_fit_allocate(PatientRecord patient)
-{
+int best_fit_allocate(PatientRecord patient){
     int bestIndex = -1;
     int smallestGap = 9999;
     int i;
 
-    for(i = 0; i < WARD_SIZE; i++)
-    {
-        if(ward[i].is_free)
-        {
+    for(i = 0; i < WARD_SIZE; i++){
+        if(ward[i].is_free){
             int gap = ward[i].size - patient.care_units;
 
-            if(gap >= 0 && gap < smallestGap)
-            {
+            if(gap >= 0 && gap < smallestGap){
                 smallestGap = gap;
                 bestIndex = i;
             }
         }
     }
 
-    if(bestIndex != -1)
-    {
+    if(bestIndex != -1) {
         ward[bestIndex].is_free = 0;
         ward[bestIndex].patient_id = patient.patient_id;
 
@@ -79,12 +59,10 @@ int best_fit_allocate(PatientRecord patient)
     }
      return -1;
 }
-int first_fit_allocate(PatientRecord patient)
-{
-    int i;
+int first_fit_allocate(PatientRecord patient){
+    int i = 0;
 
-    for(i = 0; i < WARD_SIZE; i++)
-    {
+    for(i = 0; i < WARD_SIZE; i++){
         if(ward[i].is_free)
         {
             ward[i].is_free = 0;

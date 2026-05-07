@@ -3,14 +3,12 @@
 
 #include "shared.h"
 
-typedef struct QueueNode
-{
+typedef struct QueueNode{
     PatientRecord patient;
     struct QueueNode* next;
 } QueueNode;
 
-typedef struct
-{
+typedef struct{
     QueueNode* front;
     QueueNode* rear;
 } PatientQueue;
@@ -27,8 +25,8 @@ int is_queue_empty(PatientQueue* queue);
 
 void display_queue(PatientQueue* queue);
 
-void free_queue(PatientQueue* queue);
+// void free_queue(PatientQueue* queue);
 
-int queue_size(PatientQueue* queue);
+// int queue_size(PatientQueue* queue);
 
 #endif
