@@ -67,4 +67,26 @@ void run_scheduler(PatientQueue* queue)
         write_schedule_log(logBuffer);
     }
 }
+void fcfs_log(PatientRecord patient,
+              int start,
+              int end)
+{
+    FILE* file;
+
+    file = fopen("logs/schedule_log.txt",
+                 "a");
+
+    if(file == NULL)
+    {
+        return;
+    }
+
+    fprintf(file,
+            "P%d | Start: %d | End: %d\n",
+            patient.patient_id,
+            start,
+            end);
+
+    fclose(file);
+}
 

@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 
-
+extern int pipe_fd[2];
 extern pthread_mutex_t queue_mutex;
 extern pthread_mutex_t ward_mutex;
 extern pthread_cond_t queue_not_empty;

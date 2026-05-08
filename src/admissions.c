@@ -14,7 +14,9 @@
 #include "threading.h"
 #include <signal.h>
 #include "statistics.h"
+#include "nurse.h"
 
+int pipe_fd[2];
 int runner = 1;
 void sigchld_handler(int sig)
 {
@@ -26,11 +28,25 @@ void handle_sigint(int sig){
     printf("\nShutting down...\n");
 }
 
-int main(void){
+
+//Main
+int main(int argc,
+         char* argv[]){
+            char strategy[20] = "best";
+
+if(argc > 1)
+{
+    strcpy(strategy,
+           argv[1]);
+}
+
+printf("Allocation Strategy: %s\n",
+       strategy);
     int totalPatient = 3;
     int disChargeCount = 0;
     signal(SIGCHLD, sigchld_handler);
     signal(SIGINT, handle_sigint);
+    pipe(pipe_fd);
     initialize_ward();
     initialize_ipc();
 
@@ -43,6 +59,9 @@ int main(void){
 
 pthread_mutex_init(&queue_mutex, NULL);
 pthread_mutex_init(&ward_mutex, NULL);
+pthread_t icu_nurse;
+pthread_t general_nurse;
+pthread_t isolation_nurse;
 pthread_cond_init(&queue_not_empty, NULL);
 
     PatientRecord p1 = {1, "Ali", 20, 8, 1, 1, time(NULL)};
@@ -52,7 +71,33 @@ pthread_cond_init(&queue_not_empty, NULL);
     enqueue_patient(&queue, p1);
     enqueue_patient(&queue, p2);
     enqueue_patient(&queue, p3);
+    pid_t pid;
 
+pid = fork();
+
+if(pid == 0)
+{
+    while(1)
+    {
+        PatientRecord p;
+
+        scanf("%s %d %d %d",
+              p.name,
+              &p.age,
+              &p.severity,
+              &p.priority);
+
+        p.patient_id = rand() % 1000;
+
+        p.care_units = 1;
+
+        p.arrival_time = time(NULL);
+
+        write(pipe_fd[1],
+              &p,
+              sizeof(PatientRecord));
+    }
+}
     pthread_create(&receptionist,
                NULL,
                receptionist_thread,
@@ -72,7 +117,20 @@ pthread_create(&monitor,
                NULL,
                monitor_thread,
                &queue);
+pthread_create(&icu_nurse,
+               NULL,
+               icu_nurse_thread,
+               NULL);
 
+pthread_create(&general_nurse,
+               NULL,
+               general_nurse_thread,
+               NULL);
+
+pthread_create(&isolation_nurse,
+               NULL,
+               isolation_nurse_thread,
+               NULL);
     int fd = open(DISCHARGE_FIFO, O_RDONLY);
 
     while(disChargeCount<totalPatient){
@@ -100,5 +158,6 @@ pthread_create(&monitor,
     pthread_mutex_destroy(&queue_mutex);
     pthread_mutex_destroy(&ward_mutex);
     pthread_cond_destroy(&queue_not_empty);
+   destroy_semaphores();
     return 0;
 }
