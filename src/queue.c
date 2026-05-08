@@ -94,3 +94,15 @@ void display_queue(PatientQueue* queue){
         current = current->next;
     }
 }
+void free_queue(PatientQueue* queue){
+    QueueNode* current = queue->front;
+
+    while(current != NULL){
+        QueueNode* temp = current;
+        current = current->next;
+        free(temp);
+    }
+
+    queue->front = NULL;
+    queue->rear = NULL;
+}

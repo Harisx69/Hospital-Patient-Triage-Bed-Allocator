@@ -25,7 +25,7 @@ int is_queue_empty(PatientQueue* queue);
 
 void display_queue(PatientQueue* queue);
 
-// void free_queue(PatientQueue* queue);
+void free_queue(PatientQueue* queue);
 
 // int queue_size(PatientQueue* queue);
 

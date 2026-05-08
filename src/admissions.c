@@ -11,13 +11,12 @@
 
 void sigchld_handler(int sig)
 {
-    while(waitpid(-1, NULL, WNOHANG) > 0)
-    {
-    }
+    while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-int main()
-{
+int main(void){
+    int totalPatient = 3;
+    int disChargeCount = 0;
     signal(SIGCHLD, sigchld_handler);
 
     initialize_ward();
@@ -38,7 +37,7 @@ int main()
 
     int fd = open(DISCHARGE_FIFO, O_RDONLY);
 
-    while(1){
+    while(disChargeCount<totalPatient){
         int patient_id;
 
         int bytes = read(fd, &patient_id, sizeof(int));
@@ -50,9 +49,12 @@ int main()
 
             free_partition(patient_id);
             print_ward_map();
+            disChargeCount++;
         }
+        
     }
-
+    printf("Simulation Completed.\n");
+    free_queue(&queue);
     cleanup_ipc();
 
     return 0;
