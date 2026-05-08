@@ -23,41 +23,51 @@ QueueNode* create_node(PatientRecord patient){
 
     return newNode;
 }
-void enqueue_patient(PatientQueue* queue, PatientRecord patient)
+void enqueue_patient(PatientQueue* queue,
+                     PatientRecord patient)
 {
-    QueueNode* newNode = create_node(patient);
+    QueueNode* node;
 
-    if(newNode == NULL) {
+    node = create_node(patient);
+
+    if(queue->front == NULL)
+    {
+        queue->front = node;
+        queue->rear = node;
+
         return;
     }
 
-    if(queue->front == NULL) {
-        queue->front = newNode;
-        queue->rear = newNode;
+    if(patient.priority <
+       queue->front->patient.priority)
+    {
+        node->next = queue->front;
+
+        queue->front = node;
+
         return;
     }
 
-    if(patient.priority < queue->front->patient.priority){
-        newNode->next = queue->front;
-        queue->front = newNode;
-        return;
-    }
+    QueueNode* current;
 
-    QueueNode* current = queue->front;
+    current = queue->front;
 
     while(current->next != NULL &&
-          current->next->patient.priority <= patient.priority){
+          current->next->patient.priority
+          < patient.priority)
+    {
         current = current->next;
     }
 
-    newNode->next = current->next;
-    current->next = newNode;
+    node->next = current->next;
 
-    if(newNode->next == NULL) {
-        queue->rear = newNode;
+    current->next = node;
+
+    if(node->next == NULL)
+    {
+        queue->rear = node;
     }
 }
-
 PatientRecord dequeue_patient(PatientQueue* queue){
     PatientRecord emptyPatient;
 
@@ -83,16 +93,24 @@ PatientRecord dequeue_patient(PatientQueue* queue){
 int is_queue_empty(PatientQueue* queue){
     return queue->front == NULL;
 }
-void display_queue(PatientQueue* queue){
-    QueueNode* current = queue->front;
+void display_queue(PatientQueue* queue)
+{
+    QueueNode* current;
 
-    while(current != NULL){
-        printf("Patient ID: %d Priority: %d\n",
+    current = queue->front;
+
+    printf("\nQueue:\n");
+
+    while(current != NULL)
+    {
+        printf("[P%d | Pr:%d] -> ",
                current->patient.patient_id,
                current->patient.priority);
 
         current = current->next;
     }
+
+    printf("NULL\n");
 }
 void free_queue(PatientQueue* queue){
     QueueNode* current = queue->front;

@@ -12,18 +12,25 @@
 #include"ipc.h"
 #include <pthread.h>
 #include "threading.h"
+#include <signal.h>
+#include "statistics.h"
 
-
+int runner = 1;
 void sigchld_handler(int sig)
 {
     while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
+void handle_sigint(int sig){
+    runner = 0;
+    printf("\nShutting down...\n");
 }
 
 int main(void){
     int totalPatient = 3;
     int disChargeCount = 0;
     signal(SIGCHLD, sigchld_handler);
-
+    signal(SIGINT, handle_sigint);
     initialize_ward();
     initialize_ipc();
 
@@ -84,11 +91,10 @@ pthread_create(&monitor,
         }
         
     }
-    pthread_join(receptionist, NULL);
-    pthread_join(scheduler, NULL);
-    pthread_join(discharge, NULL);
-    pthread_join(monitor, NULL);
+    while(runner) sleep(1);
+
     printf("Simulation Completed.\n");
+    print_statistics();
     free_queue(&queue);
     cleanup_ipc();
     pthread_mutex_destroy(&queue_mutex);

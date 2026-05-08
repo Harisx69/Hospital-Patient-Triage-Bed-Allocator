@@ -4,10 +4,19 @@ CFLAGS = -Wall -Wextra -pthread -Iinclude
 all:
 	$(CC) src/patient_simulator.c src/ipc.c src/memory_manager.c $(CFLAGS) -o patient_simulator
 
-	$(CC) src/admissions.c src/threading.c src/ipc.c src/scheduler.c src/memory_manager.c src/queue.c $(CFLAGS) -o admissions
+	$(CC) src/admissions.c \
+	src/threading.c \
+	src/ipc.c \
+	src/scheduler.c \
+	src/memory_manager.c \
+	src/queue.c \
+	src/logger.c \
+	src/stats.c \
+	$(CFLAGS) \
+	-o admissions
 
 run:
 	./admissions
 
 clean:
-	rm -f admissions patient_simulator
+	rm -f admissions patient_simulator1;

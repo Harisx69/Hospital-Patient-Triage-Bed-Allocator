@@ -4,12 +4,12 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/wait.h>
-
+#include "logger.h"
+#include "statistics.h"
 #include "threading.h"
 #include "queue.h"
 #include "memory_manager.h"
 #include "ipc.h"
-
 pthread_mutex_t queue_mutex;
 pthread_mutex_t ward_mutex;
 pthread_cond_t queue_not_empty;
@@ -20,14 +20,19 @@ void* receptionist_thread(void* arg)
 
     int id = 10;
 
-    while(1)
-    {
+    while(runner) {
         sleep(3);
 
         PatientRecord p;
 
         p.patient_id = id;
-        p.priority = rand() % 5 + 1;
+        p.severity = rand() % 10 + 1;
+        if(p.severity >= 9) p.priority = 1;
+        else if(p.severity >= 7)p.priority = 2;
+        else if(p.severity >= 5) p.priority = 3;
+        else if(p.severity >= 3) p.priority = 4;
+        else  p.priority = 5;
+
         p.care_units = 1;
         p.arrival_time = time(NULL);
 
@@ -35,7 +40,10 @@ void* receptionist_thread(void* arg)
 
         enqueue_patient(queue, p);
 
-        printf("Patient %d arrived\n", id);
+printf("Patient %d arrived | Severity: %d | Priority: %d\n",
+       id,
+       p.severity,
+       p.priority);
 
         pthread_cond_signal(&queue_not_empty);
 
@@ -51,8 +59,7 @@ void* scheduler_thread(void* arg)
 {
     PatientQueue* queue = (PatientQueue*)arg;
 
-    while(1)
-    {
+    while(runner) {
         pthread_mutex_lock(&queue_mutex);
 
         while(is_queue_empty(queue))
@@ -70,7 +77,17 @@ void* scheduler_thread(void* arg)
         int bed = best_fit_allocate(p);
 
         pthread_mutex_unlock(&ward_mutex);
+        total_admitted++;
 
+char msg[100];
+
+sprintf(msg,
+        "Patient %d got bed %d",
+        p.patient_id,
+        bed);
+
+write_log("logs/hospital.log",
+          msg);
         if(bed == -1)
         {
             printf("No bed for patient %d\n",
@@ -109,8 +126,7 @@ void* discharge_listener_thread(void* arg)
 
     fd = open(DISCHARGE_FIFO, O_RDONLY);
 
-    while(1)
-    {
+    while(runner){
         int patient_id;
 
         int bytes;
@@ -126,7 +142,16 @@ void* discharge_listener_thread(void* arg)
             free_partition(patient_id);
 
             pthread_mutex_unlock(&ward_mutex);
+            total_discharged++;
 
+char msg[100];
+
+sprintf(msg,
+        "Patient %d discharged",
+        patient_id);
+
+write_log("logs/hospital.log",
+          msg);
             printf("Patient %d discharged\n",
                    patient_id);
 
@@ -141,8 +166,7 @@ void* monitor_thread(void* arg)
 {
     PatientQueue* queue = (PatientQueue*)arg;
 
-    while(1)
-    {
+    while(runner){
         sleep(5);
 
         pthread_mutex_lock(&ward_mutex);
@@ -159,6 +183,7 @@ void* monitor_thread(void* arg)
 
         printf("Queue Size: %d\n",
                queue_size(queue));
+        display_queue(queue);
 
         pthread_mutex_unlock(&queue_mutex);
     }
