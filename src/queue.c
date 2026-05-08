@@ -106,3 +106,13 @@ void free_queue(PatientQueue* queue){
     queue->front = NULL;
     queue->rear = NULL;
 }
+
+int queue_size(PatientQueue* queue){
+    int size = 0;
+    QueueNode* current = queue->front;
+
+    while(current != NULL) {   size++; current = current->next;
+    }
+
+    return size;
+}
