@@ -11,21 +11,15 @@ void write_log(char* filename, char* message){
     fprintf(file,"[%ld] %s\n",now,message);
     fclose(file);
 }
-void memory_log(char* msg)
-{
+void memory_log(char* msg){
     FILE* file;
 
-    file = fopen("logs/memory_log.txt",
-                 "a");
+    file = fopen("logs/memory_log.txt","a");
 
-    if(file == NULL)
-    {
-        return;
-    }
+    if(file == NULL)  return;
+    
 
-    fprintf(file,
-            "%s\n",
-            msg);
+    fprintf(file, "%s\n", msg);
 
     fclose(file);
 }

@@ -23,24 +23,18 @@ QueueNode* create_node(PatientRecord patient){
 
     return newNode;
 }
-void enqueue_patient(PatientQueue* queue,
-                     PatientRecord patient)
-{
+void enqueue_patient(PatientQueue* queue, PatientRecord patient){
     QueueNode* node;
 
     node = create_node(patient);
 
-    if(queue->front == NULL)
-    {
+    if(queue->front == NULL) {
         queue->front = node;
         queue->rear = node;
-
         return;
     }
 
-    if(patient.priority <
-       queue->front->patient.priority)
-    {
+    if(patient.priority <queue->front->patient.priority){
         node->next = queue->front;
 
         queue->front = node;
@@ -53,9 +47,7 @@ void enqueue_patient(PatientQueue* queue,
     current = queue->front;
 
     while(current->next != NULL &&
-          current->next->patient.priority
-          < patient.priority)
-    {
+          current->next->patient.priority < patient.priority) {
         current = current->next;
     }
 
@@ -63,10 +55,7 @@ void enqueue_patient(PatientQueue* queue,
 
     current->next = node;
 
-    if(node->next == NULL)
-    {
-        queue->rear = node;
-    }
+    if(node->next == NULL) {    queue->rear = node;    }
 }
 PatientRecord dequeue_patient(PatientQueue* queue){
     PatientRecord emptyPatient;
@@ -90,11 +79,9 @@ PatientRecord dequeue_patient(PatientQueue* queue){
 
     return removedPatient;
 }
-int is_queue_empty(PatientQueue* queue){
-    return queue->front == NULL;
-}
-void display_queue(PatientQueue* queue)
-{
+int is_queue_empty(PatientQueue* queue){    return queue->front == NULL; }
+
+void display_queue(PatientQueue* queue){
     QueueNode* current;
 
     current = queue->front;
@@ -129,7 +116,8 @@ int queue_size(PatientQueue* queue){
     int size = 0;
     QueueNode* current = queue->front;
 
-    while(current != NULL) {   size++; current = current->next;
+    while(current != NULL) {  
+         size++; current = current->next;
     }
 
     return size;

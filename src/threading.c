@@ -3,224 +3,213 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <fcntl.h>
-#include <semaphore.h>
-#include "semaphores.h"
 #include <sys/wait.h>
-#include "logger.h"
+#include <signal.h>
+#include <time.h>
+
 #include "statistics.h"
 #include "threading.h"
 #include "queue.h"
 #include "memory_manager.h"
 #include "ipc.h"
+
+
+extern volatile sig_atomic_t runner; 
+extern int total_admitted;
+extern int total_discharged;
+extern float avg_waiting;
+extern float avg_turnaround;
+
 pthread_mutex_t queue_mutex;
 pthread_mutex_t ward_mutex;
 pthread_cond_t queue_not_empty;
 
-void* receptionist_thread(void* arg)
-{
-    PatientQueue* queue;
 
-    queue = (PatientQueue*)arg;
+void* receptionist_thread(void* arg){
+    PatientQueue* queue = (PatientQueue*)arg;
+    int id = 10;
 
-    while(runner)
+    while(runner) 
     {
+        sleep(3);
+        if(!runner) break;
+
         PatientRecord p;
-
-        int bytes;
-
-        bytes = read(pipe_fd[0],
-                     &p,
-                     sizeof(PatientRecord));
-
-        if(bytes <= 0)
-        {
-            continue;
-        }
-
-        sem_wait(&queue_empty);
+        p.patient_id = id;
+        p.priority = rand() % 5 + 1;
+        p.care_units = 1;
+        p.arrival_time = time(NULL);
 
         pthread_mutex_lock(&queue_mutex);
-
         enqueue_patient(queue, p);
-
-        printf("Patient %d added from triage\n",
-               p.patient_id);
-
-        sem_post(&queue_full);
-
+        printf("Patient %d arrived (Auto-generated)\n", id);
         pthread_cond_signal(&queue_not_empty);
-
         pthread_mutex_unlock(&queue_mutex);
-    }
 
+        id++;
+    }
     return NULL;
 }
 
+
 void* scheduler_thread(void* arg)
 {
-    
     PatientQueue* queue = (PatientQueue*)arg;
 
-    while(runner) {
-        sem_wait(&queue_full);
-        sem_wait(&queue_full);
+    while(runner)
+    {
         pthread_mutex_lock(&queue_mutex);
 
-        while(is_queue_empty(queue))
+
+        while(runner && is_queue_empty(queue))
         {
-            pthread_cond_wait(&queue_not_empty,
-                              &queue_mutex);
+            pthread_cond_wait(&queue_not_empty, &queue_mutex);
+        }
+
+
+        if(!runner) {
+            pthread_mutex_unlock(&queue_mutex);
+            break;
         }
 
         PatientRecord p = dequeue_patient(queue);
-        static int current_time = 0;
-
-int burst = rand() % 5 + 1;
-
-int start_time = current_time;
-
-int end_time = current_time + burst;
-
-fcfs_log(p,
-         start_time,
-         end_time);
-
-current_time = end_time;
-        sem_post(&queue_empty);
-        sem_post(&queue_empty);
         pthread_mutex_unlock(&queue_mutex);
 
         pthread_mutex_lock(&ward_mutex);
-        if(strcmp(p.name, "ICU") == 0)
-{
-    sem_wait(&icu_sem);
-}
-
-if(strcmp(p.name, "ISOLATION") == 0)
-{
-    sem_wait(&isolation_sem);
-}
         int bed = best_fit_allocate(p);
 
+        if(bed != -1){
+            total_admitted++;
+            long wait_time = time(NULL) - p.arrival_time;
+            
+
+            avg_waiting = ((avg_waiting * (total_admitted - 1)) + wait_time) / total_admitted;
+            
+
+            ward[bed].arrival_time = p.arrival_time; 
+        }
         pthread_mutex_unlock(&ward_mutex);
-        total_admitted++;
 
-char msg[100];
-
-sprintf(msg,
-        "Patient %d got bed %d",
-        p.patient_id,
-        bed);
-
-write_log("logs/hospital.log",
-          msg);
         if(bed == -1)
         {
-            printf("No bed for patient %d\n",
-                   p.patient_id);
-
+            printf("No bed for patient %d\n", p.patient_id);
             continue;
         }
 
         pid_t pid = fork();
-
         if(pid == 0)
         {
-            char id[20];
-            char bedid[20];
+            char id_str[20], bed_str[20];
+            sprintf(id_str, "%d", p.patient_id);
+            sprintf(bed_str, "%d", bed);
 
-            sprintf(id, "%d", p.patient_id);
-            sprintf(bedid, "%d", bed);
-
-            char* args[] = {
-                "./patient_simulator",
-                id,
-                bedid,
-                NULL
-            };
-
+            char* args[] = {"./patient_simulator", id_str, bed_str, NULL};
             execv("./patient_simulator", args);
+            perror("execv failed");
+            exit(1); 
         }
     }
-
     return NULL;
 }
 
+
 void* discharge_listener_thread(void* arg)
 {
-    int fd;
 
-    fd = open(DISCHARGE_FIFO, O_RDONLY);
+    int fd = open(DISCHARGE_FIFO, O_RDONLY | O_NONBLOCK);
+    if(fd == -1) return NULL;
 
-    while(runner){
+    while(runner)
+    {
         int patient_id;
-
-        int bytes;
-
-        bytes = read(fd,
-                     &patient_id,
-                     sizeof(int));
+        // Use read() on the non-blocking file descriptor
+        int bytes = read(fd, &patient_id, sizeof(int));
 
         if(bytes > 0)
         {
             pthread_mutex_lock(&ward_mutex);
 
-            free_partition(patient_id);
-            if(patient_id % 2 == 0)
-{
-    sem_post(&icu_sem);
-}
-else
-{
-    sem_post(&isolation_sem);
-}
+            time_t arrival_time = 0;
 
-            pthread_mutex_unlock(&ward_mutex);
+            for(int i = 0; i < WARD_SIZE; i++) {
+                if(!ward[i].is_free && ward[i].patient_id == patient_id) {
+                    arrival_time = ward[i].arrival_time; 
+                    break;
+                }
+            }
+
+            free_partition(patient_id); 
             total_discharged++;
 
-char msg[100];
+            if(arrival_time > 0) {
+                // Formula: $$T_{turnaround} = T_{discharge} - T_{arrival}$$
+                long turnaround_time = time(NULL) - arrival_time;
+                avg_turnaround = ((avg_turnaround * (total_discharged - 1)) + turnaround_time) / total_discharged;
+            }
 
-sprintf(msg,
-        "Patient %d discharged",
-        patient_id);
-
-write_log("logs/hospital.log",
-          msg);
-            printf("Patient %d discharged\n",
-                   patient_id);
-
-            print_ward_map();
+            pthread_mutex_unlock(&ward_mutex);
+            printf("Patient %d discharged | Turnaround: %ld sec\n", patient_id, (time(NULL) - arrival_time));
+        }
+        else {
+            usleep(100000); 
         }
     }
-
+    close(fd);
     return NULL;
 }
+
 
 void* monitor_thread(void* arg)
 {
     PatientQueue* queue = (PatientQueue*)arg;
-
-    while(runner){
+    while(runner)
+    {
         sleep(5);
+        if(!runner) break;
 
         pthread_mutex_lock(&ward_mutex);
-
         printf("\n===== MONITOR =====\n");
-
         print_ward_map();
-
         fragmentation_report();
-
         pthread_mutex_unlock(&ward_mutex);
 
         pthread_mutex_lock(&queue_mutex);
-
-        printf("Queue Size: %d\n",
-               queue_size(queue));
-        display_queue(queue);
-
+        printf("Queue Size: %d\n", queue_size(queue));
         pthread_mutex_unlock(&queue_mutex);
     }
+    return NULL;
+}
 
+void* triage_listener_thread(void* arg) {
+    PatientQueue* queue = (PatientQueue*)arg;
+
+    while(runner) {
+
+        int fd = open(TRIAGE_FIFO, O_RDONLY | O_NONBLOCK);
+        if (fd == -1) {
+            usleep(500000);
+            continue;
+        }
+
+
+        fcntl(fd, F_SETFL, 0);
+        FILE* fifo = fdopen(fd, "r");
+
+        int id, priority, units;
+        while (runner && fscanf(fifo, "%d %d %d", &id, &priority, &units) != EOF) {
+            PatientRecord p;
+            p.patient_id = id;
+            p.priority = priority;
+            p.care_units = units;
+            p.arrival_time = time(NULL); 
+
+            pthread_mutex_lock(&queue_mutex);
+            enqueue_patient(queue, p);
+            printf("\n[TRIAGE] Patient %d received from script (Priority: %d)\n", id, priority);
+            pthread_cond_signal(&queue_not_empty); 
+            pthread_mutex_unlock(&queue_mutex);
+        }
+        fclose(fifo);
+    }
     return NULL;
 }

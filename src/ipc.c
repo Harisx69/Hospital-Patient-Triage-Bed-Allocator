@@ -5,12 +5,18 @@
 #include <unistd.h>
 #include "ipc.h"
 
+
+
+
+
 void initialize_ipc(){
     mkfifo(DISCHARGE_FIFO, 0666);
+    mkfifo(TRIAGE_FIFO, 0666);   
 }
 
 void cleanup_ipc(){
     unlink(DISCHARGE_FIFO);
+    unlink(TRIAGE_FIFO);    
 }
 
 int create_shared_memory(){

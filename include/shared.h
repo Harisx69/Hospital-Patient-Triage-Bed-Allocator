@@ -21,6 +21,7 @@ typedef struct
     int size;
     int is_free;
     int patient_id;
+    time_t arrival_time;
     char bed_type[16];
 } BedPartition;
 

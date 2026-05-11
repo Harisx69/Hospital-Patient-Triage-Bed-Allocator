@@ -1,25 +1,23 @@
 #include <stdio.h>
 #include <string.h>
 #include "memory_manager.h"
+#include "semaphores.h"
 
 BedPartition ward[WARD_SIZE];
-void initialize_ward()
-{
-    int i = 0 ;
-    for(i = 0; i < WARD_SIZE; i++) {
-        ward[i].partition_id = i;
-        ward[i].start_unit = i;
-        ward[i].size = 1;
-        ward[i].is_free = 1;
-        ward[i].patient_id = -1;
-        if(i < 4) {
-            strcpy(ward[i].bed_type, "ICU");
-        }else if(i < 8){
-            strcpy(ward[i].bed_type, "ISOLATION");
-        }else{
-            strcpy(ward[i].bed_type, "GENERAL");
-        }
-    }
+
+
+void initialize_ward(){
+   for(int i = 0; i < WARD_SIZE; i++){
+    ward[i].partition_id = i;
+
+    ward[i].start_unit = i;
+
+    ward[i].size = 1;
+
+    ward[i].is_free = 1;
+
+    ward[i].patient_id = -1;
+}
 }
 
 void print_ward_map(){
@@ -140,23 +138,29 @@ int calculate_total_free_units()
 
     return total;
 }
+
 int largest_free_block()
 {
-    int largest = 0;
-    int i;
+    int current_block = 0;
+    int largest_block = 0;
 
-    for(i = 0; i < WARD_SIZE; i++)
+    for(int i = 0; i < WARD_SIZE; i++)
     {
         if(ward[i].is_free)
         {
-            if(ward[i].size > largest)
+            current_block++;
+
+            if(current_block > largest_block)
             {
-                largest = ward[i].size;
+                largest_block = current_block;
             }
         }
+        else
+        {
+            current_block = 0;
+        }
     }
-
-    return largest;
+    return largest_block;  
 }
 void fragmentation_report()
 {

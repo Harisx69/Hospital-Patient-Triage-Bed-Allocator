@@ -1,6 +1,7 @@
 #include "memory_manager.h"
 
 #define DISCHARGE_FIFO "/tmp/discharge_fifo"
+#define TRIAGE_FIFO "triage_fifo"
 #define SHM_KEY 12345
 
 void initialize_ipc();

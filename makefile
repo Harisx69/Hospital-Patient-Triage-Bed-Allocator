@@ -1,22 +1,34 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pthread -Iinclude
+
+CFLAGS = -Wall -Wextra -pthread
+
+SRC = src/admissions.c \
+      src/threading.c \
+      src/queue.c \
+      src/memory_manager.c \
+      src/ipc.c \
+      src/logger.c \
+      src/stats.c \
+      src/semaphores.c \
+      src/nurse.c \
+      src/scheduler.c
+
+PATIENT_SRC = src/patient_simulator.c
+
+INCLUDE = -Iinclude
 
 all:
-	$(CC) src/patient_simulator.c src/ipc.c src/memory_manager.c $(CFLAGS) -o patient_simulator
+	$(CC) $(CFLAGS) $(SRC) $(INCLUDE) -o admissions
+	$(CC) $(CFLAGS) $(PATIENT_SRC) $(INCLUDE) -o patient_simulator
 
-	$(CC) src/admissions.c \
-	src/threading.c \
-	src/ipc.c \
-	src/scheduler.c \
-	src/memory_manager.c \
-	src/queue.c \
-	src/logger.c \
-	src/stats.c \
-	$(CFLAGS) \
-	-o admissions
-
-run:
+run: all
 	./admissions
 
+test: all
+	./scripts/stress_test.sh
+
 clean:
-	rm -f admissions patient_simulator1;
+	rm -f admissions
+	rm -f patient_simulator
+	rm -f logs/*.log
+	rm -f /tmp/discharge_fifo

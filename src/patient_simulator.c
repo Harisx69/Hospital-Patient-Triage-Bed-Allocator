@@ -5,7 +5,7 @@
 #include <time.h>
 #include <string.h>
 #include "ipc.h"
-
+#include "semaphores.h"
 int main(int argc, char* argv[])
 {
     if(argc < 3)
@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
 
     sleep(treatment_time);
 
-    printf("Patient %d discharged\n",
-           patient_id);
+    // printf("Patient %d discharged\n",
+    //        patient_id);
 
     int fd = open(DISCHARGE_FIFO, O_WRONLY);
 

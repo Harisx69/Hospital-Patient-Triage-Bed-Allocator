@@ -6,6 +6,7 @@
 #include <string.h>
 #include "scheduler.h"
 #include "memory_manager.h"
+#include "semaphores.h"
 
 void write_schedule_log(char* message)
 {
